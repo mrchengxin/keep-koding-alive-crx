@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     
-    "name": "Keep koding alive",
+    "name": "Koding Robot",
     "description": "A chrome extension to keep koding vm always on",
     "version": "1.0",
     
@@ -18,7 +18,7 @@
     ],
     
     "browser_action": {
-        "default_icon": "icon.png",
+        "default_icon": "icon256.png",
         "default_popup": "popup.html",
         "default_title": "Time Settings"
     },
