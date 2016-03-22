@@ -38,8 +38,8 @@ function waitThenExecute(isResourcesLoaded, callback, interval) {
 
 // login
 function login() {
-    document.querySelector('input[testpath="login-form-username"]').value = "world201502";
-    document.querySelector('input[testpath="login-form-password"]').value = "world201502";
+    document.querySelector('input[testpath="login-form-username"]').value = "";
+    document.querySelector('input[testpath="login-form-password"]').value = "";
     document.querySelector('button[testpath="login-button"]').click();
 }
 
