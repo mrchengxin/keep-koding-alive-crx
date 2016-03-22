@@ -1,13 +1,13 @@
-function click() {
-    var period1 = {'from':20, 'to':24};
-    var period2 = {'from':0, 'to':8};
-    chrome.extension.getBackgroundPage().VALID_PERIODS.push(period1);
-    chrome.extension.getBackgroundPage().VALID_PERIODS.push(period2);
-    chrome.extension.getBackgroundPage().REFRESH_INTERVAL = document.getElementById('refresh-interval').value;
+function start() {
+    var bgPage = chrome.extension.getBackgroundPage();
+    bgPage.DAY_ACCOUNT.account.username = document.getElementById('day-username').value;
+    bgPage.DAY_ACCOUNT.account.password = document.getElementById('day-password').value;
+    bgPage.NIGHT_ACCOUNT.account.username = document.getElementById('night-username').value;
+    bgPage.NIGHT_ACCOUNT.account.password = document.getElementById('night-password').value;
     
     chrome.tabs.create({
         url: "https://koding.com/Login",
-        pinned: false
+        pinned: true
     }, function(tab) {
         console.log(tab);
         chrome.extension.getBackgroundPage().NEW_CREATED_TAB = tab;
@@ -15,6 +15,11 @@ function click() {
     });
 }
 
+function stop() {
+    
+}
+
 document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('btn-start').addEventListener('click', click);
+    document.getElementById('btn-start').addEventListener('click', start);
+    document.getElementById('btn-stop').addEventListener('click', stop);
 });

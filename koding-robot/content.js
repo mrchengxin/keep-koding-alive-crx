@@ -2,7 +2,7 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     switch(request.command) {
         case 'login': {
-            login();
+            login(request.username, request.password);
             break;
         }
         case 'recreate-session': {
@@ -10,11 +10,19 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             break;
         }
         case 'check-vm-status': {
-            checkVmStatus();
+            checkVmStatus(request.username);
             break;
         }
         case 'turn-on': {
             turnOn();
+            break;
+        }
+        case 'get-current-username': {
+            sendResponse({username: getCurrentUsername()});
+            break;
+        }
+        case 'logout': {
+            logout();
             break;
         }
     }
@@ -37,9 +45,9 @@ function waitThenExecute(isResourcesLoaded, callback, interval) {
 }
 
 // login
-function login() {
-    document.querySelector('input[testpath="login-form-username"]').value = "";
-    document.querySelector('input[testpath="login-form-password"]').value = "";
+function login(username, password) {
+    document.querySelector('input[testpath="login-form-username"]').value = username;
+    document.querySelector('input[testpath="login-form-password"]').value = password;
     document.querySelector('button[testpath="login-button"]').click();
 }
 
@@ -67,20 +75,28 @@ function recreateSession() {
 }
 
 // check vm status
-function checkVmStatus() {
+function checkVmStatus(username) {
     setTimeout(function() {
         var isDialogDisplayed = document.getElementsByClassName('kdmodal-shadow').length > 0;
         if (isDialogDisplayed) {
             waitThenExecute(function() {
                 return document.getElementsByClassName('content-container')[0].firstElementChild.textContent.indexOf('turned off') > 0;
             }, function() {
-                chrome.runtime.sendMessage({vmStatus: 'off'});
+                if (getCurrentUsername() !== username) {
+                    chrome.runtime.sendMessage({vmStatus: 'wrong-user'});
+                } else {
+                    chrome.runtime.sendMessage({vmStatus: 'off'});
+                }
             }, 100);
         } else {
             waitThenExecute(function() {
                 return document.getElementsByClassName('jtreeitem').length > 1;
             }, function() {
-                chrome.runtime.sendMessage({vmStatus: 'on'});
+                if (getCurrentUsername() !== username) {
+                    chrome.runtime.sendMessage({vmStatus: 'wrong-user'});
+                } else {
+                    chrome.runtime.sendMessage({vmStatus: 'on'});
+                }
             }, 100);
         }
     }, 500);
@@ -99,3 +115,13 @@ function turnOn() {
         }, 100);
     }, 500);
 };
+
+// get current username
+function getCurrentUsername() {
+    return document.getElementsByClassName('avatar-area')[0].querySelectorAll(':scope > .profile')[0].textContent;
+}
+
+// logout
+function logout() {
+    document.querySelector('[testpath=logout-link]').click();
+}
