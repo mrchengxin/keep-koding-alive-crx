@@ -89,14 +89,20 @@ function checkVmStatus(username) {
                 }
             }, 100);
         } else {
+            document.getElementsByClassName('vm-header')[0].querySelector(':scope > .buttons').children[0].click();
             waitThenExecute(function() {
-                return document.getElementsByClassName('jtreeitem').length > 1;
+                return document.getElementsByClassName('refresh').length > 0;
             }, function() {
-                if (getCurrentUsername() !== username) {
-                    chrome.runtime.sendMessage({vmStatus: 'wrong-user'});
-                } else {
-                    chrome.runtime.sendMessage({vmStatus: 'on'});
-                }
+                document.getElementsByClassName('refresh')[0].click();
+                waitThenExecute(function() {
+                    return document.getElementsByClassName('jtreeitem').length > 1;
+                }, function() {
+                    if (getCurrentUsername() !== username) {
+                        chrome.runtime.sendMessage({vmStatus: 'wrong-user'});
+                    } else {
+                        chrome.runtime.sendMessage({vmStatus: 'on'});
+                    }
+                }, 100);
             }, 100);
         }
     }, 500);
@@ -108,17 +114,23 @@ function turnOn() {
     waitThenExecute(function() {
         return document.getElementsByClassName('kdmodal-shadow').length == 0;
     }, function() {
+        document.getElementsByClassName('vm-header')[0].querySelector(':scope > .buttons').children[0].click();
         waitThenExecute(function() {
-            return document.getElementsByClassName('jtreeitem').length > 1;
+            return document.getElementsByClassName('refresh').length > 0;
         }, function() {
-            chrome.runtime.sendMessage({vmStatus: 'on'});
+            document.getElementsByClassName('refresh')[0].click();
+            waitThenExecute(function() {
+                return document.getElementsByClassName('jtreeitem').length > 1;
+            }, function() {
+                chrome.runtime.sendMessage({vmStatus: 'on'});
+            }, 100);
         }, 100);
     }, 500);
 };
 
 // get current username
 function getCurrentUsername() {
-    return document.getElementsByClassName('avatar-area')[0].querySelectorAll(':scope > .profile')[0].textContent;
+    return document.getElementsByClassName('vm-info')[0].textContent.replace('/home/', '');
 }
 
 // logout

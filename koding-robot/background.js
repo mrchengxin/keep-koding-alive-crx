@@ -28,7 +28,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             CURRENT_ACCOUNT = response.username;
         });
         
-        console.log('bg: first time to recreate session');
+        console.log('bg: first time to recreate session, ' + new Date());
         chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'recreate-session'}, null);
         
         console.log(getCurrentAccount());
@@ -57,7 +57,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
             console.log('bg: alarm is cleared');
             
             console.log('bg: logout');
-            console.log('bg: switch to ' + getCurrentAccount().username);
+            console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
             chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
             return;
         }
@@ -67,7 +67,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
             console.log('bg: alarm is cleared');
             
             console.log('bg: logout');
-            console.log('bg: switch to ' + getCurrentAccount().username);
+            console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
             chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
             return;
         }
@@ -75,7 +75,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
     // recreate session
     if (getCurrentAccount() !== null) {
         console.log('bg: alarm is triggered');
-        console.log('bg: recreate session');
+        console.log('bg: recreate session, ' + new Date());
         chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "recreate-session"}, null);
     } else {
         chrome.alarms.clear(alarm.name);
