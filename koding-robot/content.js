@@ -10,15 +10,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             break;
         }
         case 'check-vm-status': {
-            checkVmStatus(request.username);
+            checkVmStatus();
             break;
         }
         case 'turn-on': {
             turnOn();
-            break;
-        }
-        case 'get-current-username': {
-            sendResponse({username: getCurrentUsername()});
             break;
         }
         case 'logout': {
@@ -30,11 +26,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 // functions
 /**
+ * wait until given resource is loaded, then execute given function
+ * 
  * @Param isResourcesLoaded function to check whether resources are loaded
  * @Param callback function to execute when resources are loaded
  * @Param interval wait time before next check
  */
 function waitThenExecute(isResourcesLoaded, callback, interval) {
+    if (typeof interval == 'undefined') {
+        interval = 100;
+    }
     setTimeout(function() {
         if (isResourcesLoaded()) {
             callback();
@@ -42,6 +43,21 @@ function waitThenExecute(isResourcesLoaded, callback, interval) {
             waitThenExecute(isResourcesLoaded, callback, interval);
         }
     }, interval);
+}
+
+/**
+ * response vm status, with current username
+ * 
+ * @Param vmStatus status of the vm, 'on' or 'off'
+ * @Response {vmStatus: vmStatus, currentUsername: currentUsername}
+ */
+function responseVmStatus(vmStatus) {
+    waitThenExecute(function() {
+        return document.getElementsByClassName('avatar-area').length > 0;
+    }, function() {
+        var currentUsername = document.getElementsByClassName('avatar-area')[0].querySelectorAll(':scope > .profile')[0].textContent;
+        chrome.runtime.sendMessage({vmStatus: vmStatus, currentUsername: currentUsername});
+    });
 }
 
 // login
@@ -70,40 +86,36 @@ function recreateSession() {
             var sessionMenu = document.getElementsByClassName('new-terminal')[0].nextElementSibling;
             sessionMenu.className = sessionMenu.className.replace('hidden', '');
             document.getElementsByClassName('new-session')[0].click();
-        }, 100);
-    }, 100);
+        });
+    });
 }
 
 // check vm status
-function checkVmStatus(username) {
+function checkVmStatus() {
     setTimeout(function() {
         var isDialogDisplayed = document.getElementsByClassName('kdmodal-shadow').length > 0;
         if (isDialogDisplayed) {
             waitThenExecute(function() {
                 return document.getElementsByClassName('content-container')[0].firstElementChild.textContent.indexOf('turned off') > 0;
             }, function() {
-                if (getCurrentUsername() !== username) {
-                    chrome.runtime.sendMessage({vmStatus: 'wrong-user'});
-                } else {
-                    chrome.runtime.sendMessage({vmStatus: 'off'});
-                }
-            }, 100);
+                responseVmStatus('off');
+            });
         } else {
-            document.getElementsByClassName('vm-header')[0].querySelector(':scope > .buttons').children[0].click();
             waitThenExecute(function() {
-                return document.getElementsByClassName('refresh').length > 0;
+                return document.getElementsByClassName('untitledtxt').length == 0;
             }, function() {
-                document.getElementsByClassName('refresh')[0].click();
+                document.getElementsByClassName('vm-header')[0].querySelector(':scope > .buttons').children[0].click();
                 waitThenExecute(function() {
-                    return document.getElementsByClassName('jtreeitem').length > 1;
+                    return document.getElementsByClassName('refresh').length > 0;
                 }, function() {
-                    if (getCurrentUsername() !== username) {
-                        chrome.runtime.sendMessage({vmStatus: 'wrong-user'});
-                    } else {
-                        chrome.runtime.sendMessage({vmStatus: 'on'});
-                    }
-                }, 100);
-            }, 100);
+                    document.getElementsByClassName('refresh')[0].click();
+                    waitThenExecute(function() {
+                        return document.getElementsByClassName('jtreeitem').length > 1;
+                    }, function() {
+                        responseVmStatus('on');
+                    });
+                });
+            });
         }
     }, 500);
 }
@@ -114,24 +126,23 @@ function turnOn() {
     waitThenExecute(function() {
         return document.getElementsByClassName('kdmodal-shadow').length == 0;
     }, function() {
-        document.getElementsByClassName('vm-header')[0].querySelector(':scope > .buttons').children[0].click();
         waitThenExecute(function() {
-            return document.getElementsByClassName('refresh').length > 0;
+            return document.getElementsByClassName('untitledtxt').length == 0;
         }, function() {
-            document.getElementsByClassName('refresh')[0].click();
+            document.getElementsByClassName('vm-header')[0].querySelector(':scope > .buttons').children[0].click();
             waitThenExecute(function() {
-                return document.getElementsByClassName('jtreeitem').length > 1;
+                return document.getElementsByClassName('refresh').length > 0;
             }, function() {
-                chrome.runtime.sendMessage({vmStatus: 'on'});
-            }, 100);
-        }, 100);
+                document.getElementsByClassName('refresh')[0].click();
+                waitThenExecute(function() {
+                    return document.getElementsByClassName('jtreeitem').length > 1;
+                }, function() {
+                    responseVmStatus('on');
+                });
+            });
+        });
     }, 500);
 };
-
-// get current username
-function getCurrentUsername() {
-    return document.getElementsByClassName('vm-info')[0].textContent.replace('/home/', '');
-}
 
 // logout
 function logout() {

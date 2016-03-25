@@ -1,6 +1,6 @@
 var DAY_ACCOUNT = {"periods":[{"from":8, "to":22}], "account":{"username":null, "password":null}};
 var NIGHT_ACCOUNT = {"periods":[{"from":22, "to":24}, {"from":0, "to":8}], "account":{"username":null, "password":null}};
-var REFRESH_INTERVAL = 5; // 5 minutes
+var REFRESH_INTERVAL = '5.0'; //5 minutes
 var NEW_CREATED_TAB = null;
 var ALARM_NAME_RECREATE_SESSION = 'recreate-session-alarm';
 var CURRENT_ACCOUNT = null;
@@ -22,28 +22,26 @@ function getCurrentAccount() {
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    if (request.vmStatus == 'on') {
-        console.log('bg: remember current username');
-        chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'get-current-username'}, function(response) {
-            CURRENT_ACCOUNT = response.username;
-        });
-        
-        console.log('bg: first time to recreate session, ' + new Date());
-        chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'recreate-session'}, null);
-        
-        console.log(getCurrentAccount());
-        console.log('REFRESH_INTERVAL = ' + REFRESH_INTERVAL);
-        if (getCurrentAccount() !== null) {
-            console.log('bg: start the alarm');
-            chrome.alarms.create(ALARM_NAME_RECREATE_SESSION, {periodInMinutes: parseFloat(REFRESH_INTERVAL)});
-        }
-    } else if (request.vmStatus == 'off') {
-        console.log('bg: turn on');
-        chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'turn-on'}, null);
-    } else if (request.vmStatus == 'wrong-user') {
+    if (request.currentUsername !== getCurrentAccount().username) {
         console.log('bg: logout');
-        console.log('bg: switch to ' + getCurrentAccount().username);
+        console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
         chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
+    } else {
+        CURRENT_ACCOUNT = request.currentUsername;
+        if (request.vmStatus == 'on') {
+            console.log('bg: first time to recreate session, ' + new Date());
+            chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'recreate-session'}, null);
+            
+            console.log(getCurrentAccount());
+            console.log('REFRESH_INTERVAL = ' + REFRESH_INTERVAL);
+            if (getCurrentAccount() !== null) {
+                console.log('bg: start the alarm');
+                chrome.alarms.create(ALARM_NAME_RECREATE_SESSION, {periodInMinutes: parseFloat(REFRESH_INTERVAL)});
+            }
+        } else if (request.vmStatus == 'off') {
+            console.log('bg: turn on');
+            chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'turn-on'}, null);
+        }
     }
 });
 
@@ -93,8 +91,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
             chrome.alarms.get(ALARM_NAME_RECREATE_SESSION, function(alarm) {
                 if (alarm == null) {
                     console.log('bg: check vm status');
-                    var account = getCurrentAccount();
-                    chrome.tabs.sendMessage(tab.id, {command: 'check-vm-status', username: account.username}, null);
+                    chrome.tabs.sendMessage(tab.id, {command: 'check-vm-status'}, null);
                 }
             });
         } else if (tab.url == 'http://www.koding.com/') {
