@@ -28,28 +28,40 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 /**
  * wait until given resource is loaded, then execute given function
  * 
- * @Param isResourcesLoaded function to check whether resources are loaded
- * @Param callback function to execute when resources are loaded
- * @Param interval wait time before next check
+ * @param isResourcesLoaded Function to check whether resources are loaded
+ * @param callback Function to execute when resources are loaded
+ * @param interval (Optional) Wait time before next check
+ * @param maxWait (Optional) Max wait time, reload page after maxWait 
  */
-function waitThenExecute(isResourcesLoaded, callback, interval) {
-    if (typeof interval == 'undefined') {
+function waitThenExecute(isResourcesLoaded, callback, interval, maxWait) {
+    if (typeof interval === 'undefined') {
         interval = 100;
     }
-    setTimeout(function() {
-        if (isResourcesLoaded()) {
-            callback();
+    if (typeof maxWait === 'undefined') {
+        maxWait = 1000 * 60 * 5;
+    }
+    var waitThenExecuteInternal = function(isResourcesLoaded, callback, interval, maxWait, passedTime) {
+        if (passedTime > maxWait) {
+            window.location.reload();
+            return;
         } else {
-            waitThenExecute(isResourcesLoaded, callback, interval);
+            setTimeout(function() {
+                if (isResourcesLoaded()) {
+                    callback();
+                } else {
+                    waitThenExecuteInternal(isResourcesLoaded, callback, interval, maxWait, passedTime + interval);
+                }
+            }, interval);
         }
-    }, interval);
+    };
+    waitThenExecuteInternal(isResourcesLoaded, callback, interval, maxWait, 0);
 }
 
 /**
  * response vm status, with current username
  * 
- * @Param vmStatus status of the vm, 'on' or 'off'
- * @Response {vmStatus: vmStatus, currentUsername: currentUsername}
+ * @param vmStatus status of the vm, 'on' or 'off'
+ * @response {vmStatus: vmStatus, currentUsername: currentUsername}
  */
 function responseVmStatus(vmStatus) {
     waitThenExecute(function() {
