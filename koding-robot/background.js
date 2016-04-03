@@ -1,21 +1,30 @@
-var DAY_ACCOUNT = {"periods":[{"from":8, "to":22}], "account":{"username":null, "password":null}};
-var NIGHT_ACCOUNT = {"periods":[{"from":22, "to":24}, {"from":0, "to":8}], "account":{"username":null, "password":null}};
+var PERIOD_ACCOUNTS = [
+    {
+        periods: [{from:22, to:24}, {from:0, to:6}],
+        account: {username:null, password:null}
+    },
+    {
+        periods: [{from:6, to:14}],
+        account: {username:null, password:null}},
+    {
+        periods: [{from:14, to:22}],
+        account: {username:null, password:null}
+    }
+];
 var REFRESH_INTERVAL = '5.0'; //5 minutes
 var NEW_CREATED_TAB = null;
 var ALARM_NAME_RECREATE_SESSION = 'recreate-session-alarm';
-var CURRENT_ACCOUNT = null;
+var CURRENT_ACCOUNT_USERNAME = null;
 
 function getCurrentAccount() {
     var day = new Date();
     var hour = day.getHours();
-    for (var i = 0; i < DAY_ACCOUNT.periods.length; i++) {
-        if (DAY_ACCOUNT.periods[i].from <= hour && hour < DAY_ACCOUNT.periods[i].to) {
-            return DAY_ACCOUNT.account;
-        }
-    }
-    for (var i = 0; i < NIGHT_ACCOUNT.periods.length; i++) {
-        if (NIGHT_ACCOUNT.periods[i].from <= hour && hour < NIGHT_ACCOUNT.periods[i].to) {
-            return NIGHT_ACCOUNT.account;
+    for (var i = 0, maxI = PERIOD_ACCOUNTS.length; i < maxI; i++) {
+        var periodAccount = PERIOD_ACCOUNTS[i];
+        for (var j = 0, maxJ = periodAccount.periods.length; j < maxJ; j++) {
+            if (periodAccount.periods[j].from <= hour && hour < periodAccount.periods[j].to) {
+                return periodAccount.account;
+            }
         }
     }
     return null;
@@ -27,7 +36,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
         chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
     } else {
-        CURRENT_ACCOUNT = request.currentUsername;
+        CURRENT_ACCOUNT_USERNAME = request.currentUsername;
         if (request.vmStatus == 'on') {
             console.log('bg: first time to recreate session, ' + new Date());
             chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: 'recreate-session'}, null);
@@ -49,25 +58,17 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
     // switch to the other user at given time
     var day = new Date();
     var hour = day.getHours();
-    if (hour == DAY_ACCOUNT.periods[0].from) {
-        if (CURRENT_ACCOUNT !== DAY_ACCOUNT.account.username) {
-            chrome.alarms.clear(alarm.name);
-            console.log('bg: alarm is cleared');
-            
-            console.log('bg: logout');
-            console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
-            chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
-            return;
-        }
-    } else if (hour == NIGHT_ACCOUNT.periods[0].from) {
-        if (CURRENT_ACCOUNT !== NIGHT_ACCOUNT.account.username) {
-            chrome.alarms.clear(alarm.name);
-            console.log('bg: alarm is cleared');
-            
-            console.log('bg: logout');
-            console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
-            chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
-            return;
+    for (var i = 0, maxI = PERIOD_ACCOUNTS.length; i < maxI; i++) {
+        if (hour === PERIOD_ACCOUNTS[i].periods[0].from) {
+            if (CURRENT_ACCOUNT_USERNAME !== PERIOD_ACCOUNTS[i].account.username) {
+                chrome.alarms.clear(alarm.name);
+                console.log('bg: alarm is cleared');
+                
+                console.log('bg: logout');
+                console.log('bg: switch to ' + getCurrentAccount().username + ', ' + new Date());
+                chrome.tabs.sendMessage(NEW_CREATED_TAB.id, {command: "logout"}, null);
+                return;
+            }
         }
     }
     // recreate session
